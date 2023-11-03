@@ -2,48 +2,46 @@ package main
 
 import (
 	"fmt"
-	"gortc.io/stun"
-	"log"
 	"net"
 )
 
 func main() {
-	// 创建一个UDP连接
-	conn, err := net.Dial("udp", "stun.l.google.com:19302")
+	// 创建UDP连接到STUN服务器
+	serverAddr, err := net.ResolveUDPAddr("udp", "stun.qq.com:3478")
 	if err != nil {
-		log.Fatal(err)
+		fmt.Println("Error resolving STUN server address:", err)
+		return
+	}
+
+	conn, err := net.DialUDP("udp", nil, serverAddr)
+	if err != nil {
+		fmt.Println("Error connecting to STUN server:", err)
+		return
 	}
 	defer conn.Close()
 
-	// 创建一个 STUN 消息
-	message := new(stun.Message)
-	message.Type = stun.ClassRequest | stun.MethodBinding
+	// 构建STUN请求
+	request := []byte{0, 1, 0, 0} // STUN Binding Request message
+	conn.Write(request)
 
-	// 发送 STUN 请求
-	_, err = message.WriteTo(conn)
+	// 接收STUN响应
+	response := make([]byte, 512)
+	_, err = conn.Read(response)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Println("Error reading STUN response:", err)
+		return
 	}
 
-	// 接收 STUN 响应
-	buf := make([]byte, 1500)
-	_, err = conn.Read(buf)
-	if err != nil {
-		log.Fatal(err)
+	// 解析STUN响应以获取NAT类型
+	if response[0] == 0x01 && response[1] == 0x01 {
+		fmt.Println("NAT类型：Full Cone (Open Internet)")
+	} else if response[0] == 0x02 && response[1] == 0x02 {
+		fmt.Println("NAT类型：Restricted Cone")
+	} else if response[0] == 0x03 && response[1] == 0x03 {
+		fmt.Println("NAT类型：Port Restricted Cone")
+	} else if response[0] == 0x04 && response[1] == 0x04 {
+		fmt.Println("NAT类型：Symmetric")
+	} else {
+		fmt.Println("NAT类型：Unknown")
 	}
-
-	// 解析 STUN 响应
-	var externalIP net.IP
-	var externalPort int
-
-	var xorAddr stun.XORMappedAddress
-	if err := xorAddr.GetFrom(message, stun.AttrXORMappedAddress); err != nil {
-		log.Fatal(err)
-	}
-
-	externalIP = xorAddr.IP
-	externalPort = xorAddr.Port
-
-	fmt.Printf("External IP: %s\n", externalIP)
-	fmt.Printf("External Port: %d\n", externalPort)
 }
