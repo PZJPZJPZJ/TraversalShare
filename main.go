@@ -1,47 +1,40 @@
+//go:build windows
+// +build windows
+
 package main
 
 import (
 	"fmt"
-	"net"
+
+	"github.com/pion/stun"
 )
 
 func main() {
-	// 创建UDP连接到STUN服务器
-	serverAddr, err := net.ResolveUDPAddr("udp", "stun.qq.com:3478")
+	// Parse a STUN URI
+	u, err := stun.ParseURI("stun:stun.l.google.com:19302")
 	if err != nil {
-		fmt.Println("Error resolving STUN server address:", err)
-		return
+		panic(err)
 	}
 
-	conn, err := net.DialUDP("udp", nil, serverAddr)
+	// Creating a "connection" to STUN server.
+	c, err := stun.DialURI(u, &stun.DialConfig{})
 	if err != nil {
-		fmt.Println("Error connecting to STUN server:", err)
-		return
+		panic(err)
 	}
-	defer conn.Close()
-
-	// 构建STUN请求
-	request := []byte{0, 1, 0, 0} // STUN Binding Request message
-	conn.Write(request)
-
-	// 接收STUN响应
-	response := make([]byte, 512)
-	_, err = conn.Read(response)
-	if err != nil {
-		fmt.Println("Error reading STUN response:", err)
-		return
-	}
-
-	// 解析STUN响应以获取NAT类型
-	if response[0] == 0x01 && response[1] == 0x01 {
-		fmt.Println("NAT类型：Full Cone (Open Internet)")
-	} else if response[0] == 0x02 && response[1] == 0x02 {
-		fmt.Println("NAT类型：Restricted Cone")
-	} else if response[0] == 0x03 && response[1] == 0x03 {
-		fmt.Println("NAT类型：Port Restricted Cone")
-	} else if response[0] == 0x04 && response[1] == 0x04 {
-		fmt.Println("NAT类型：Symmetric")
-	} else {
-		fmt.Println("NAT类型：Unknown")
+	// Building binding request with random transaction id.
+	message := stun.MustBuild(stun.TransactionID, stun.BindingRequest)
+	// Sending request to STUN server, waiting for response message.
+	if err := c.Do(message, func(res stun.Event) {
+		if res.Error != nil {
+			panic(res.Error)
+		}
+		// Decoding XOR-MAPPED-ADDRESS attribute from message.
+		var xorAddr stun.XORMappedAddress
+		if err := xorAddr.GetFrom(res.Message); err != nil {
+			panic(err)
+		}
+		fmt.Println(xorAddr.IP, ":", xorAddr.Port)
+	}); err != nil {
+		panic(err)
 	}
 }
