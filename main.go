@@ -4,116 +4,126 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"net"
+	"os"
 	"time"
 
-	"github.com/ccding/go-stun/stun" // 引入 go-stun 包，用于与 stun 服务器交互
+	"github.com/ccding/go-stun/stun"
 )
-
-const (
-	stunServer = "stun.radiojar.com:3478" // stun 服务器的地址，可以换成其他可用的地址
-)
-
-// Client 客户端结构体，包含名称，本地地址，公网地址和套接字
-type Client struct {
-	name       string
-	localAddr  *net.UDPAddr
-	publicAddr *net.UDPAddr
-	conn       *net.UDPConn
-}
-
-// NewClient 创建一个客户端，绑定一个本地 udp 端口，并向 stun 服务器发送请求，获取自己的公网地址
-func NewClient(name string) (*Client, error) {
-	c := &Client{name: name}
-	var err error
-	c.conn, err = net.ListenUDP("udp4", nil) // 随机分配一个本地 udp 端口
-	if err != nil {
-		return nil, err
-	}
-	c.localAddr = c.conn.LocalAddr().(*net.UDPAddr)
-	fmt.Printf("%s: 本地地址: %s\n", c.name, c.localAddr)
-	// 创建一个 stun 客户端，指定 stun 服务器的地址
-	stunClient := stun.NewClient()
-	stunClient.SetServerAddr(stunServer)
-	// 向 stun 服务器发送请求，获取自己的 nat 类型和公网地址
-	nat, host, err := stunClient.Discover()
-	if err != nil {
-		return nil, err
-	}
-	fmt.Printf("%s: NAT 类型: %s\n", c.name, nat)
-	fmt.Printf("%s: 公网地址: %s\n", c.name, host)
-	// 解析公网地址，得到公网 ip 和端口
-	ip := net.IPv4(host.IP()[0], host.IP()[1], host.IP()[2], host.IP()[3])
-	port := int(host.Port())
-	c.publicAddr = &net.UDPAddr{
-		IP:   ip,
-		Port: port,
-	}
-	return c, nil
-}
-
-// 从套接字中读取数据，并打印出来
-func (c *Client) read() {
-	for {
-		data := make([]byte, 1024)
-		n, addr, err := c.conn.ReadFromUDP(data)
-		if err != nil {
-			fmt.Printf("%s: 读取数据错误: %v\n", c.name, err)
-			continue
-		}
-		fmt.Printf("%s: 从 %s 收到数据: %s\n", c.name, addr, data[:n])
-	}
-}
-
-// 向目标地址发送数据，每隔一秒发送一次，直到程序退出
-func (c *Client) write(target *net.UDPAddr) {
-	for {
-		// 向目标地址发送一条问候语，包含自己的名称
-		data := []byte(fmt.Sprintf("Hello, I am %s", c.name))
-		_, err := c.conn.WriteToUDP(data, target)
-		if err != nil {
-			fmt.Printf("%s: 发送数据错误: %v\n", c.name, err)
-		} else {
-			fmt.Printf("%s: 向 %s 发送数据: %s\n", c.name, target, data)
-		}
-		time.Sleep(time.Second) // 暂停一秒
-	}
-}
 
 func main() {
-	// 创建两个客户端，分别命名为 A 和 B
-	clientA, err := NewClient("A")
+	// 本地端口，用于与STUN服务器和对方通信
+	localPort := 0 // 设置为0时，系统会自动分配端口
+
+	// 创建本地UDP地址
+	localAddr, err := net.ResolveUDPAddr("udp4", fmt.Sprintf("0.0.0.0:%d", localPort))
 	if err != nil {
-		fmt.Println("创建客户端 A 错误:", err)
+		fmt.Println("Error resolving local address:", err)
 		return
 	}
-	clientB, err := NewClient("B")
+
+	// 创建UDP连接，用于与STUN服务器通信
+	conn, err := net.ListenUDP("udp4", localAddr)
 	if err != nil {
-		fmt.Println("创建客户端 B 错误:", err)
+		fmt.Println("Error creating UDP connection:", err)
 		return
 	}
-	// 让两个客户端分别输入对方的公网 ip 和端口，作为目标地址
-	var ip string
-	var port int
-	fmt.Println("请输入客户端 A 的目标地址 (ip:port):")
-	fmt.Scanln(&ip, &port)
-	targetA := &net.UDPAddr{
-		IP:   net.ParseIP(ip),
-		Port: port,
+	defer conn.Close()
+
+	// 打印本地端口
+	localPort = conn.LocalAddr().(*net.UDPAddr).Port
+	fmt.Printf("Local UDP port before contacting STUN servers: %d\n", localPort)
+
+	// 使用STUN库查询第一个公网地址和端口
+	client := stun.NewClientWithConnection(conn)
+	client.SetServerAddr("stun.radiojar.com:3478")
+
+	nat1, host1, err := client.Discover()
+	if err != nil {
+		fmt.Println("Error discovering NAT type from first STUN server:", err)
+		return
 	}
-	fmt.Println("请输入客户端 B 的目标地址 (ip:port):")
-	fmt.Scanln(&ip, &port)
-	targetB := &net.UDPAddr{
-		IP:   net.ParseIP(ip),
-		Port: port,
+
+	// 打印本地端口
+	fmt.Printf("Local UDP port after contacting first STUN server: %d\n", localPort)
+
+	// 使用STUN库查询第二个公网地址和端口
+	client.SetServerAddr("stun.miwifi.com:3478")
+	nat2, host2, err := client.Discover()
+	if err != nil {
+		fmt.Println("Error discovering NAT type from second STUN server:", err)
+		return
 	}
-	// 让两个客户端同时开始读写数据
-	go clientA.read()
-	go clientB.read()
-	go clientA.write(targetA)
-	go clientB.write(targetB)
-	// 主程序阻塞等待，直到按下回车键退出
-	fmt.Println("按下回车键退出...")
-	fmt.Scanln()
+
+	// 检查两个外部端口是否一致
+	if host1.Port() != host2.Port() {
+		fmt.Println("The external ports are not consistent.")
+		return
+	}
+
+	// 显示NAT类型和公网地址
+	fmt.Printf("NAT Type from first STUN server: %s\n", nat1)
+	fmt.Printf("External IP from first STUN server: %s\n", host1.IP())
+	fmt.Printf("External Port from first STUN server: %d\n", host1.Port())
+
+	fmt.Printf("NAT Type from second STUN server: %s\n", nat2)
+	fmt.Printf("External IP from second STUN server: %s\n", host2.IP())
+	fmt.Printf("External Port from second STUN server: %d\n", host2.Port())
+
+	// 读取对方的公网地址和端口
+	reader := bufio.NewReader(os.Stdin)
+	fmt.Print("Enter peer's external IP: ")
+	peerIP, _ := reader.ReadString('\n')
+	fmt.Print("Enter peer's external Port: ")
+	var peerPort int
+	fmt.Scanf("%d", &peerPort)
+
+	// 设置对方的地址
+	peerAddr, err := net.ResolveUDPAddr("udp4", fmt.Sprintf("%s:%d", peerIP, peerPort))
+	if err != nil {
+		fmt.Println("Error resolving peer address:", err)
+		return
+	}
+
+	// 使用相同的本地端口与对方通信
+	_, err = conn.WriteTo([]byte("Hello from NAT!"), peerAddr)
+	if err != nil {
+		fmt.Println("Error sending message:", err)
+		return
+	}
+
+	// 接收对方的消息
+	buffer := make([]byte, 1024)
+	n, _, err := conn.ReadFromUDP(buffer)
+	if err != nil {
+		fmt.Println("Error reading from UDP:", err)
+		return
+	}
+
+	// 打印接收到的消息
+	fmt.Printf("Received message: %s\n", string(buffer[:n]))
+
+	// 发送心跳包保持连接
+	go func() {
+		for {
+			time.Sleep(30 * time.Second)
+			_, err = conn.WriteTo([]byte("Heartbeat"), peerAddr)
+			if err != nil {
+				fmt.Println("Error sending heartbeat:", err)
+				return
+			}
+		}
+	}()
+
+	// 持续监听该端口收到的消息，并打印在控制台上
+	for {
+		n, _, err := conn.ReadFromUDP(buffer)
+		if err != nil {
+			fmt.Println("Error reading from UDP:", err)
+			continue
+		}
+		fmt.Printf("Received message: %s\n", string(buffer[:n]))
+	}
 }
