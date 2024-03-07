@@ -26,11 +26,9 @@ func con6() {
 		return
 	}
 
-	go listenForMessages(conn, &wg)
+	go listenForMessages(conn, peerAddr, &wg)
 
 	sendInitialMessage(conn, peerAddr)
-
-	handleUserInput(conn, peerAddr)
 
 	wg.Wait() // 等待监听goroutine
 }
@@ -73,10 +71,12 @@ func sendInitialMessage(conn *net.UDPConn, peerAddr *net.UDPAddr) {
 	}
 }
 
-func listenForMessages(conn *net.UDPConn, wg *sync.WaitGroup) {
+func listenForMessages(conn *net.UDPConn, peerAddr *net.UDPAddr, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	buffer := make([]byte, 1024)
+	connectionEstablished := false
+
 	for {
 		n, addr, err := conn.ReadFromUDP(buffer)
 		if err != nil {
@@ -84,15 +84,20 @@ func listenForMessages(conn *net.UDPConn, wg *sync.WaitGroup) {
 			continue
 		}
 		message := string(buffer[:n])
-		fmt.Printf("\nReceived '%s' from %s\n", message, addr.String())
-		fmt.Print("Enter message to send: ")
+
+		if message == "hello" && !connectionEstablished {
+			connectionEstablished = true
+			fmt.Println("Connection successful! You can start chatting now.")
+			go handleUserInput(conn, peerAddr)
+		} else if connectionEstablished {
+			fmt.Printf("%s say %s\n", addr.String(), message)
+		}
 	}
 }
 
 func handleUserInput(conn *net.UDPConn, peerAddr *net.UDPAddr) {
 	reader := bufio.NewReader(os.Stdin)
 	for {
-		fmt.Print("Enter message to send: ")
 		msg, _ := reader.ReadString('\n')
 		_, err := conn.WriteToUDP([]byte(strings.TrimSpace(msg)), peerAddr)
 		if err != nil {
