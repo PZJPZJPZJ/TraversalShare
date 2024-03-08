@@ -7,7 +7,8 @@ import (
 
 func natTest() {
 	client := stun.NewClient()
-	client.SetServerAddr("stun.radiojar.com:3478")
+	client.SetServerAddr("stunserver.stunprotocol.org:3478")
+	// 显示测试日志
 	client.SetVerbose(true)
 
 	nat, host, err := client.Discover()
