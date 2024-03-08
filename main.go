@@ -4,5 +4,5 @@
 package main
 
 func main() {
-	con6()
+	natTest()
 }
