@@ -3,7 +3,9 @@
 
 package main
 
-import "traversal-share/internal"
+import (
+	"traversal-share/internal"
+)
 
 func main() {
 	internal.NatTest()
