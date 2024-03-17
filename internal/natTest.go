@@ -1,11 +1,11 @@
-package main
+package internal
 
 import (
 	"fmt"
 	"github.com/ccding/go-stun/stun"
 )
 
-func natTest() {
+func NatTest() {
 	client := stun.NewClient()
 	client.SetServerAddr("stunserver.stunprotocol.org:3478")
 	// 显示测试日志

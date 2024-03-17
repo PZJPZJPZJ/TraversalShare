@@ -1,4 +1,4 @@
-package main
+package internal
 
 import (
 	"bufio"   // 用于读取标准输入
@@ -10,7 +10,7 @@ import (
 )
 
 // con6函数设置UDP连接并启动监听和发送消息的goroutines
-func con6() {
+func Con6() {
 	var wg sync.WaitGroup
 	wg.Add(1) // 为监听goroutine添加等待
 
