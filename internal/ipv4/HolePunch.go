@@ -45,7 +45,10 @@ func HolePunch() {
 	peerIP, _ := reader.ReadString('\n')
 	fmt.Print("Enter peer's external Port: ")
 	var peerPort int
-	fmt.Scanf("%d", &peerPort)
+	_, err = fmt.Scanf("%d", &peerPort)
+	if err != nil {
+		return
+	}
 
 	// 设置对方的地址
 	peerAddr, err := net.ResolveUDPAddr("udp4", fmt.Sprintf("%s:%d", peerIP, peerPort))

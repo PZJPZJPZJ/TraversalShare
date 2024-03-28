@@ -9,7 +9,7 @@ import (
 	"sync"    // 用于同步goroutines
 )
 
-// con6函数设置UDP连接并启动监听和发送消息的goroutines
+// HoleConnect con6函数设置UDP连接并启动监听和发送消息的goroutines
 func HoleConnect() {
 	var wg sync.WaitGroup
 	wg.Add(1) // 为监听goroutine添加等待
@@ -19,7 +19,13 @@ func HoleConnect() {
 		fmt.Println("Error setting up connection:", err.Error())
 		return
 	}
-	defer conn.Close() // 确保在函数结束时关闭连接
+	// 确保在函数结束时关闭连接
+	defer func(conn *net.UDPConn) {
+		err := conn.Close()
+		if err != nil {
+
+		}
+	}(conn)
 
 	peerAddr, err := getPeerAddress() // 获取对方的地址
 	if err != nil {
