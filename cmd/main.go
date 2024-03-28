@@ -4,9 +4,9 @@
 package main
 
 import (
-	"traversal-share/internal"
+	"traversal-share/internal/ipv4"
 )
 
 func main() {
-	internal.NatTest()
+	ipv4.HolePunch()
 }

@@ -1,4 +1,4 @@
-package internal
+package ipv4
 
 import (
 	"bufio"
@@ -6,11 +6,9 @@ import (
 	"net"
 	"os"
 	"time"
-
-	"github.com/ccding/go-stun/stun"
 )
 
-func con4() {
+func HolePunch() {
 	// 本地端口，用于与STUN服务器和对方通信
 	localPort := 0 // 设置为0时，系统会自动分配端口
 
@@ -20,54 +18,26 @@ func con4() {
 		fmt.Println("Error resolving local address:", err)
 		return
 	}
-
-	// 创建UDP连接，用于与STUN服务器通信
+	// 创建UDP连接，用于通信
 	conn, err := net.ListenUDP("udp4", localAddr)
 	if err != nil {
 		fmt.Println("Error creating UDP connection:", err)
 		return
 	}
-	defer conn.Close()
+	// 延迟关闭连接，并处理错误
+	defer func(conn *net.UDPConn) {
+		err := conn.Close()
+		if err != nil {
+
+		}
+	}(conn)
 
 	// 打印本地端口
 	localPort = conn.LocalAddr().(*net.UDPAddr).Port
-	fmt.Printf("Local UDP port before contacting STUN servers: %d\n", localPort)
+	fmt.Printf("本地UDP端口: %d\n", localPort)
 
-	// 使用STUN库查询第一个公网地址和端口
-	client := stun.NewClientWithConnection(conn)
-	client.SetServerAddr("stun.radiojar.com:3478")
-
-	nat1, host1, err := client.Discover()
-	if err != nil {
-		fmt.Println("Error discovering NAT type from first STUN server:", err)
-		return
-	}
-
-	// 打印本地端口
-	fmt.Printf("Local UDP port after contacting first STUN server: %d\n", localPort)
-
-	// 使用STUN库查询第二个公网地址和端口
-	client.SetServerAddr("stun.miwifi.com:3478")
-	nat2, host2, err := client.Discover()
-	if err != nil {
-		fmt.Println("Error discovering NAT type from second STUN server:", err)
-		return
-	}
-
-	// 检查两个外部端口是否一致
-	if host1.Port() != host2.Port() {
-		fmt.Println("The external ports are not consistent.")
-		return
-	}
-
-	// 显示NAT类型和公网地址
-	fmt.Printf("NAT Type from first STUN server: %s\n", nat1)
-	fmt.Printf("External IP from first STUN server: %s\n", host1.IP())
-	fmt.Printf("External Port from first STUN server: %d\n", host1.Port())
-
-	fmt.Printf("NAT Type from second STUN server: %s\n", nat2)
-	fmt.Printf("External IP from second STUN server: %s\n", host2.IP())
-	fmt.Printf("External Port from second STUN server: %d\n", host2.Port())
+	// 测试NAT类型
+	NatTest(conn)
 
 	// 读取对方的公网地址和端口
 	reader := bufio.NewReader(os.Stdin)
