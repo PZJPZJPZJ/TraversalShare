@@ -15,15 +15,15 @@ func NatTest(connection *net.UDPConn) (address string) {
 	// 设置STUN服务器
 	client.SetServerAddr("stunserver.stunprotocol.org:3478")
 	// 显示测试日志
-	client.SetVerbose(true)
-
+	//client.SetVerbose(true)
+	// 执行查询
 	nat, host, err := client.Discover()
 	if err != nil {
 		fmt.Println("Error:", err)
 		return
 	}
-
 	// 显示NAT类型和公网地址
+	fmt.Println("本地UDP端口：", connection.LocalAddr().(*net.UDPAddr).Port)
 	fmt.Println("NAT类型：", nat)
 	fmt.Println("外部IP Family：", host.Family())
 	fmt.Println("外部IP：", host.IP())

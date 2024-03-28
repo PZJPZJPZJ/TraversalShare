@@ -32,10 +32,6 @@ func HolePunch() {
 		}
 	}(conn)
 
-	// 打印本地端口
-	localPort = conn.LocalAddr().(*net.UDPAddr).Port
-	fmt.Printf("本地UDP端口: %d\n", localPort)
-
 	// 测试NAT类型
 	NatTest(conn)
 
