@@ -1,4 +1,4 @@
-package ipv6
+package traversal
 
 import (
 	"bufio"   // 用于读取标准输入

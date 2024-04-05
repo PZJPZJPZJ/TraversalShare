@@ -1,4 +1,4 @@
-package ipv4
+package traversal
 
 import (
 	"fmt"

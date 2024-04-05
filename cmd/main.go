@@ -4,11 +4,10 @@
 package main
 
 import (
-	"traversal-share/internal/ipv4"
-	"traversal-share/internal/ipv6"
+	"traversal-share/internal/traversal"
 )
 
 func main() {
-	ipv4.HolePunch()
-	ipv6.HoleConnect()
+	traversal.HolePunch()
+	traversal.HoleConnect()
 }
