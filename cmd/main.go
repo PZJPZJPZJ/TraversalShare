@@ -4,10 +4,9 @@
 package main
 
 import (
-	"traversal-share/internal/traversal"
+	"traversal-share/api"
 )
 
 func main() {
-	traversal.HolePunch()
-	traversal.HoleConnect()
+	api.DemoPage()
 }
