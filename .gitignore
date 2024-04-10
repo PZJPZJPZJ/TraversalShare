@@ -1,6 +1,8 @@
 # Editor directories and files
 .idea
 .vscode
+
+# local env files
 node_modules
 
 # Binaries for programs and plugins
