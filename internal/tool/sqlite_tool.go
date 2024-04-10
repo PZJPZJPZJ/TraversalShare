@@ -1,4 +1,4 @@
-package database
+package tool
 
 import (
 	"github.com/glebarez/sqlite"
@@ -9,7 +9,7 @@ var db *gorm.DB
 var err error
 
 func init() {
-	db, err = gorm.Open(sqlite.Open("./db/ts.db"), &gorm.Config{})
+	db, err = gorm.Open(sqlite.Open("./database/ts.db"), &gorm.Config{})
 	if err != nil {
 		panic("数据库连接失败")
 	}

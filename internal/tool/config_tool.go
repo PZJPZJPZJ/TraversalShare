@@ -1,4 +1,4 @@
-package config
+package tool
 
 import (
 	"fmt"
@@ -10,9 +10,9 @@ var config *viper.Viper
 func init() {
 	config = viper.New()
 	// 文件所在目录
-	config.AddConfigPath("./config/")
+	config.AddConfigPath("./tool/")
 	// 文件名
-	config.SetConfigName("config")
+	config.SetConfigName("tool")
 	// 文件类型
 	config.SetConfigType("toml")
 	if err := config.ReadInConfig(); err != nil {
