@@ -3,9 +3,9 @@
 package main
 
 import (
-	"traversal-share/api"
+	"traversal-share/internal/controller"
 )
 
 func main() {
-	api.DemoPage()
+	controller.DemoPage()
 }
