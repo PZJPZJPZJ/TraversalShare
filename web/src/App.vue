@@ -3,7 +3,7 @@
 </template>
 
 <script setup>
-import HomePage from './components/HomePage.vue'
+import HomePage from './components/BewlyPage.vue'
 </script>
 
 <style>
