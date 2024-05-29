@@ -6218,10 +6218,7 @@ body>.os-scrollbar {
 }
 
 .dock-content.bottom .divider[data-v-fbcae8d9] {
-    margin-top: 0;
-    margin-bottom: 0;
-    margin-left: calc(var(--bew-base-font-size) * .5);
-    margin-right: calc(var(--bew-base-font-size) * .5);
+    margin: 0 calc(var(--bew-base-font-size) * .5);
     width: 2px;
     height: auto
 }
